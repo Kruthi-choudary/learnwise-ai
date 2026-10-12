@@ -1,8 +1,10 @@
 import type { Request, Response } from "express";
 import { z } from "zod";
+import "../middleware/student.middleware.js"; // augments Request with studentId
 import {
   getRecords,
   addRecord,
+  updateRecord,
   deleteRecord,
   resources,
   topicStats,
@@ -15,8 +17,8 @@ import {
 } from "../services/academics.data.js";
 
 // ── GET /api/academics/records ────────────────────────────────────────────────
-export function listRecords(_req: Request, res: Response) {
-  res.json({ data: getRecords() });
+export function listRecords(req: Request, res: Response) {
+  res.json({ data: getRecords(req.studentId!) });
 }
 
 // ── POST /api/academics/records ───────────────────────────────────────────────
@@ -36,8 +38,28 @@ export function createRecord(req: Request, res: Response) {
     res.status(400).json({ error: "Validation failed", details: result.error.flatten() });
     return;
   }
-  const record = addRecord(result.data);
+  const record = addRecord(req.studentId!, result.data);
   res.status(201).json({ data: record });
+}
+
+// ── PUT /api/academics/records/:id ───────────────────────────────────────────
+export function editRecord(req: Request, res: Response) {
+  const id = Number(req.params["id"]);
+  if (isNaN(id)) {
+    res.status(400).json({ error: "Invalid id" });
+    return;
+  }
+  const result = createRecordSchema.safeParse(req.body);
+  if (!result.success) {
+    res.status(400).json({ error: "Validation failed", details: result.error.flatten() });
+    return;
+  }
+  const record = updateRecord(req.studentId!, id, result.data);
+  if (!record) {
+    res.status(404).json({ error: "Record not found" });
+    return;
+  }
+  res.json({ data: record });
 }
 
 // ── DELETE /api/academics/records/:id ────────────────────────────────────────
@@ -47,7 +69,7 @@ export function removeRecord(req: Request, res: Response) {
     res.status(400).json({ error: "Invalid id" });
     return;
   }
-  const deleted = deleteRecord(id);
+  const deleted = deleteRecord(req.studentId!, id);
   if (!deleted) {
     res.status(404).json({ error: "Record not found" });
     return;
@@ -56,13 +78,13 @@ export function removeRecord(req: Request, res: Response) {
 }
 
 // ── GET /api/academics/stats/topics ──────────────────────────────────────────
-export function listTopicStats(_req: Request, res: Response) {
-  res.json({ data: topicStats(getRecords()) });
+export function listTopicStats(req: Request, res: Response) {
+  res.json({ data: topicStats(getRecords(req.studentId!)) });
 }
 
 // ── GET /api/academics/stats/subjects ────────────────────────────────────────
-export function listSubjectStats(_req: Request, res: Response) {
-  res.json({ data: subjectStats(getRecords()) });
+export function listSubjectStats(req: Request, res: Response) {
+  res.json({ data: subjectStats(getRecords(req.studentId!)) });
 }
 
 // ── GET /api/academics/resources ─────────────────────────────────────────────
@@ -87,7 +109,7 @@ export function listQuestions(req: Request, res: Response) {
   let personalized = false;
 
   if (!targetSubject) {
-    const gap = weakestTopic(getRecords());
+    const gap = weakestTopic(getRecords(req.studentId!));
     if (!gap) {
       res.status(400).json({ error: "subject query param is required (no performance data yet to personalize from)" });
       return;
@@ -109,11 +131,12 @@ export function listQuestions(req: Request, res: Response) {
 // narrows to one subject; ?limit= caps the result count (default 8).
 export function listRecommendations(req: Request, res: Response) {
   const { subject, limit = "8" } = req.query as Record<string, string | undefined>;
-  const data = recommendResources(getRecords(), subject, Number(limit));
+  const data = recommendResources(getRecords(req.studentId!), subject, Number(limit));
   res.json({ data });
 }
 
 // ── GET /api/academics/subjects ──────────────────────────────────────────────
+// Not student-scoped — a static reference catalog, same for everyone.
 export function listSubjects(_req: Request, res: Response) {
   res.json({ data: subjects, topicsBySubject });
 }

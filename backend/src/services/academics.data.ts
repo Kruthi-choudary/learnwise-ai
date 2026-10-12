@@ -1,7 +1,7 @@
 // Seed data matching the frontend's src/data/academics.ts exactly.
-// Replace with database queries when a DB is connected.
 
 import type { PerfRecord, Resource, Question, TopicStat, SubjectStat } from "../models/academics.model.js";
+import { db } from "../db/sqlite.js";
 
 export const subjects = ["DSA", "Operating Systems", "DBMS", "Computer Networks"] as const;
 
@@ -12,39 +12,62 @@ export const topicsBySubject: Record<string, string[]> = {
   "Computer Networks": ["TCP/IP", "Routing", "Subnetting"],
 };
 
-// Mutable in-memory store (per process) — replace with DB persistence later.
-export let records: PerfRecord[] = [
-  { id: 1,  subject: "DSA",               topic: "Arrays",              score: 17, max: 20, date: "2026-09-02", type: "Quiz",       mistakes: "Off-by-one in loops" },
-  { id: 2,  subject: "DSA",               topic: "Linked Lists",        score: 9,  max: 20, date: "2026-09-05", type: "Quiz",       mistakes: "Pointer updates when deleting nodes" },
-  { id: 3,  subject: "DSA",               topic: "Dynamic Programming", score: 11, max: 25, date: "2026-09-12", type: "Exam",       mistakes: "Choosing the state" },
-  { id: 4,  subject: "DSA",               topic: "Trees",               score: 15, max: 20, date: "2026-09-19", type: "Assignment", mistakes: "" },
-  { id: 5,  subject: "Operating Systems", topic: "Process Scheduling",  score: 12, max: 20, date: "2026-09-08", type: "Quiz",       mistakes: "Round robin waiting time" },
-  { id: 6,  subject: "Operating Systems", topic: "Deadlocks",           score: 16, max: 20, date: "2026-09-15", type: "Quiz",       mistakes: "" },
-  { id: 7,  subject: "Operating Systems", topic: "Memory Management",   score: 10, max: 20, date: "2026-09-22", type: "Exam",       mistakes: "Page replacement counting" },
-  { id: 8,  subject: "DBMS",              topic: "Normalization",       score: 18, max: 20, date: "2026-09-10", type: "Quiz",       mistakes: "" },
-  { id: 9,  subject: "DBMS",              topic: "SQL Joins",           score: 13, max: 20, date: "2026-09-24", type: "Assignment", mistakes: "Outer vs inner join" },
-  { id: 10, subject: "Computer Networks", topic: "Subnetting",          score: 8,  max: 20, date: "2026-09-26", type: "Quiz",       mistakes: "CIDR block sizes" },
-  { id: 11, subject: "DSA",               topic: "Linked Lists",        score: 12, max: 20, date: "2026-10-03", type: "Practice",   mistakes: "Pointer updates when deleting nodes" },
-  { id: 12, subject: "Computer Networks", topic: "TCP/IP",              score: 15, max: 20, date: "2026-10-06", type: "Quiz",       mistakes: "" },
+// Demo seed, copied into a student's record set the first time they're ever
+// seen (see ensureSeeded) so a fresh anonymous visitor isn't staring at an
+// empty dashboard. After that, their records live entirely in SQLite.
+const seedRecords: Omit<PerfRecord, "id">[] = [
+  { subject: "DSA",               topic: "Arrays",              score: 17, max: 20, date: "2026-09-02", type: "Quiz",       mistakes: "Off-by-one in loops" },
+  { subject: "DSA",               topic: "Linked Lists",        score: 9,  max: 20, date: "2026-09-05", type: "Quiz",       mistakes: "Pointer updates when deleting nodes" },
+  { subject: "DSA",               topic: "Dynamic Programming", score: 11, max: 25, date: "2026-09-12", type: "Exam",       mistakes: "Choosing the state" },
+  { subject: "DSA",               topic: "Trees",               score: 15, max: 20, date: "2026-09-19", type: "Assignment", mistakes: "" },
+  { subject: "Operating Systems", topic: "Process Scheduling",  score: 12, max: 20, date: "2026-09-08", type: "Quiz",       mistakes: "Round robin waiting time" },
+  { subject: "Operating Systems", topic: "Deadlocks",           score: 16, max: 20, date: "2026-09-15", type: "Quiz",       mistakes: "" },
+  { subject: "Operating Systems", topic: "Memory Management",   score: 10, max: 20, date: "2026-09-22", type: "Exam",       mistakes: "Page replacement counting" },
+  { subject: "DBMS",              topic: "Normalization",       score: 18, max: 20, date: "2026-09-10", type: "Quiz",       mistakes: "" },
+  { subject: "DBMS",              topic: "SQL Joins",           score: 13, max: 20, date: "2026-09-24", type: "Assignment", mistakes: "Outer vs inner join" },
+  { subject: "Computer Networks", topic: "Subnetting",          score: 8,  max: 20, date: "2026-09-26", type: "Quiz",       mistakes: "CIDR block sizes" },
+  { subject: "DSA",               topic: "Linked Lists",        score: 12, max: 20, date: "2026-10-03", type: "Practice",   mistakes: "Pointer updates when deleting nodes" },
+  { subject: "Computer Networks", topic: "TCP/IP",              score: 15, max: 20, date: "2026-10-06", type: "Quiz",       mistakes: "" },
 ];
 
-let nextId = records.length + 1;
+const countStmt = db.prepare("SELECT COUNT(*) as n FROM records WHERE studentId = ?");
+const insertStmt = db.prepare(
+  "INSERT INTO records (studentId, subject, topic, score, max, date, type, mistakes) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+);
+const selectStmt = db.prepare("SELECT * FROM records WHERE studentId = ? ORDER BY id ASC");
+const deleteStmt = db.prepare("DELETE FROM records WHERE studentId = ? AND id = ?");
+const updateStmt = db.prepare(
+  "UPDATE records SET subject = ?, topic = ?, score = ?, max = ?, date = ?, type = ?, mistakes = ? WHERE studentId = ? AND id = ?",
+);
 
-export function getRecords(): PerfRecord[] {
-  return records;
+function ensureSeeded(studentId: string) {
+  const row = countStmt.get(studentId) as { n: number };
+  if (row.n > 0) return;
+  for (const r of seedRecords) {
+    insertStmt.run(studentId, r.subject, r.topic, r.score, r.max, r.date, r.type, r.mistakes);
+  }
 }
 
-export function addRecord(data: Omit<PerfRecord, "id">): PerfRecord {
-  const record: PerfRecord = { id: nextId++, ...data };
-  records.push(record);
-  return record;
+export function getRecords(studentId: string): PerfRecord[] {
+  ensureSeeded(studentId);
+  return selectStmt.all(studentId) as unknown as PerfRecord[];
 }
 
-export function deleteRecord(id: number): boolean {
-  const idx = records.findIndex((r) => r.id === id);
-  if (idx === -1) return false;
-  records.splice(idx, 1);
-  return true;
+export function addRecord(studentId: string, data: Omit<PerfRecord, "id">): PerfRecord {
+  ensureSeeded(studentId);
+  const info = insertStmt.run(studentId, data.subject, data.topic, data.score, data.max, data.date, data.type, data.mistakes);
+  return { id: Number(info.lastInsertRowid), ...data };
+}
+
+export function updateRecord(studentId: string, id: number, data: Omit<PerfRecord, "id">): PerfRecord | null {
+  const info = updateStmt.run(data.subject, data.topic, data.score, data.max, data.date, data.type, data.mistakes, studentId, id);
+  if (info.changes === 0) return null;
+  return { id, ...data };
+}
+
+export function deleteRecord(studentId: string, id: number): boolean {
+  const info = deleteStmt.run(studentId, id);
+  return info.changes > 0;
 }
 
 export const resources: Resource[] = [
