@@ -56,7 +56,7 @@ function DataEntry(){
  return <div className="lab-grid">
   <section className="panel p-5"><h3 className="lab-title"><Plus size={16}/>{editing?'Edit record':'Add marks'}</h3>
    <form className="form-stack" onSubmit={submit}>
-    <div className="form-grid"><label>Subject<select value={form.subject} onChange={e=>setForm({...form,subject:e.target.value,topic:topicsBySubject[e.target.value][0]})}>{subjects.map(s=><option key={s}>{s}</option>)}</select></label>
+    <div className="form-grid"><label>Subject<select value={form.subject} onChange={e=>setForm({...form,subject:e.target.value,topic:topicsBySubject[e.target.value]?.[0]??''})}>{subjects.map(s=><option key={s}>{s}</option>)}</select></label>
     <label>Topic<select value={form.topic} onChange={e=>setForm({...form,topic:e.target.value})}>{topics.map(t=><option key={t}>{t}</option>)}</select></label>
     <label>Score<input inputMode="decimal" value={form.score} onChange={e=>setForm({...form,score:e.target.value})} placeholder="e.g. 14" aria-invalid={!!error}/></label>
     <label>Out of<input inputMode="decimal" value={form.max} onChange={e=>setForm({...form,max:e.target.value})}/></label>
@@ -122,7 +122,7 @@ function Practice({initial}:{initial:{subject:string;topic:string}|null}){
  return <div className="lab-grid">
   <section className="panel p-5"><h3 className="lab-title"><Target size={16}/>Build a practice set</h3>
    <div className="form-stack"><label>Subject<select value={subject} onChange={e=>{setSubject(e.target.value);setTopic('Any');}}>{subjects.map(s=><option key={s}>{s}</option>)}</select></label>
-   <label>Topic<select value={topic} onChange={e=>setTopic(e.target.value)}><option>Any</option>{topicsBySubject[subject].map(t=><option key={t}>{t}</option>)}</select></label>
+   <label>Topic<select value={topic} onChange={e=>setTopic(e.target.value)}><option>Any</option>{(topicsBySubject[subject]??[]).map(t=><option key={t}>{t}</option>)}</select></label>
    <label>Difficulty<select value={difficulty} onChange={e=>setDifficulty(e.target.value)}>{['Mixed','Easy','Medium','Hard'].map(d=><option key={d}>{d}</option>)}</select></label>
    <label>Number of questions: {count}<input type="range" min={1} max={5} value={count} onChange={e=>setCount(Number(e.target.value))}/></label>
    <Button onClick={generate}><Play/>Generate questions</Button>
@@ -144,7 +144,7 @@ function ProgressView(){
  const overall=Math.round(records.reduce((a,r)=>a+r.score/r.max,0)/records.length*100);
  const strong=stats.filter(s=>s.status==='Strong').length;
  const quizAvg=(()=>{const q=records.filter(r=>r.type==='Quiz');return q.length?Math.round(q.reduce((a,r)=>a+r.score/r.max,0)/q.length*100):0;})();
- const change=weekly.length>1?weekly[weekly.length-1].avg-weekly[0].avg:0;
+ const change=weekly.length>1?weekly[weekly.length-1]!.avg-weekly[0]!.avg:0;
  return <>
   <div className="stats-grid">
    <div className="stat-card"><div className="stat-top">Overall score</div><div className="stat-value">{overall}<small>%</small></div></div>

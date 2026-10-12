@@ -65,7 +65,7 @@ export type TopicStat = {subject:string;topic:string;pct:number;attempts:number;
 export function topicStats(records:PerfRecord[]):TopicStat[]{
  const map=new Map<string,PerfRecord[]>();
  records.forEach(r=>{const k=r.subject+'|'+r.topic;map.set(k,[...(map.get(k)||[]),r]);});
- return [...map.entries()].map(([k,rs])=>{const [subject,topic]=k.split('|');const sorted=[...rs].sort((a,b)=>a.date.localeCompare(b.date));const pcts=sorted.map(r=>Math.round(r.score/r.max*100));const pct=Math.round(pcts.reduce((a,b)=>a+b,0)/pcts.length);const trend=pcts.length>1?pcts[pcts.length-1]-pcts[0]:0;const mistakes=[...new Set(rs.map(r=>r.mistakes).filter(Boolean))];return {subject,topic,pct,attempts:rs.length,trend,mistakes,status:pct<60?'Weak':pct<75?'Revise':'Strong'} as TopicStat;}).sort((a,b)=>a.pct-b.pct);
+ return [...map.entries()].map(([k,rs])=>{const [subject,topic]=k.split('|');const sorted=[...rs].sort((a,b)=>a.date.localeCompare(b.date));const pcts=sorted.map(r=>Math.round(r.score/r.max*100));const pct=Math.round(pcts.reduce((a,b)=>a+b,0)/pcts.length);const trend=pcts.length>1?pcts[pcts.length-1]!-pcts[0]!:0;const mistakes=[...new Set(rs.map(r=>r.mistakes).filter(Boolean))];return {subject,topic,pct,attempts:rs.length,trend,mistakes,status:pct<60?'Weak':pct<75?'Revise':'Strong'} as TopicStat;}).sort((a,b)=>a.pct-b.pct);
 }
 export function subjectStats(records:PerfRecord[]){return subjects.map(s=>{const rs=records.filter(r=>r.subject===s);const pct=rs.length?Math.round(rs.reduce((a,r)=>a+r.score/r.max,0)/rs.length*100):0;return {subject:s,pct,count:rs.length};});}
 export function pickQuestions(subject:string,topic:string,difficulty:string,count:number):Question[]{
