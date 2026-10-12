@@ -8,6 +8,8 @@ import {
   topicStats,
   subjectStats,
   pickQuestions,
+  weakestTopic,
+  recommendResources,
   subjects,
   topicsBySubject,
 } from "../services/academics.data.js";
@@ -73,14 +75,42 @@ export function listResources(req: Request, res: Response) {
 }
 
 // ── GET /api/academics/questions ─────────────────────────────────────────────
+// Omit `subject` to get questions personalized to the weakest topic found
+// in the student's own records (easier difficulty for "Weak", medium for
+// "Revise"). Pass subject/topic/difficulty explicitly to override.
 export function listQuestions(req: Request, res: Response) {
-  const { subject, topic = "Any", difficulty = "Mixed", count = "5" } = req.query as Record<string, string | undefined>;
-  if (!subject) {
-    res.status(400).json({ error: "subject query param is required" });
-    return;
+  const { subject, topic, difficulty, count = "5" } = req.query as Record<string, string | undefined>;
+
+  let targetSubject = subject;
+  let targetTopic = topic ?? "Any";
+  let targetDifficulty = difficulty;
+  let personalized = false;
+
+  if (!targetSubject) {
+    const gap = weakestTopic(getRecords());
+    if (!gap) {
+      res.status(400).json({ error: "subject query param is required (no performance data yet to personalize from)" });
+      return;
+    }
+    targetSubject = gap.subject;
+    targetTopic = gap.topic;
+    targetDifficulty ??= gap.status === "Weak" ? "Easy" : gap.status === "Revise" ? "Medium" : "Mixed";
+    personalized = true;
   }
-  const questions = pickQuestions(subject, topic, difficulty, Number(count));
-  res.json({ data: questions });
+  targetDifficulty ??= "Mixed";
+
+  const questions = pickQuestions(targetSubject, targetTopic, targetDifficulty, Number(count));
+  res.json({ data: questions, personalized, subject: targetSubject, topic: targetTopic, difficulty: targetDifficulty });
+}
+
+// ── GET /api/academics/recommendations ───────────────────────────────────────
+// Gap-driven resource recommendations: pulls materials for every topic that
+// isn't "Strong" yet, easiest-first for "Weak" topics. Optional ?subject=
+// narrows to one subject; ?limit= caps the result count (default 8).
+export function listRecommendations(req: Request, res: Response) {
+  const { subject, limit = "8" } = req.query as Record<string, string | undefined>;
+  const data = recommendResources(getRecords(), subject, Number(limit));
+  res.json({ data });
 }
 
 // ── GET /api/academics/subjects ──────────────────────────────────────────────
