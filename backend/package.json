@@ -1,0 +1,32 @@
+{
+  "name": "learnwise-ai-backend",
+  "version": "1.0.0",
+  "description": "LearnWise AI backend REST API — Express + TypeScript",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "eslint ."
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "zod": "^3.25.76"
+  },
+  "devDependencies": {
+    "@types/cors": "^2.8.17",
+    "@types/express": "^5.0.3",
+    "@types/node": "^22.16.5",
+    "@typescript-eslint/eslint-plugin": "^8.35.1",
+    "@typescript-eslint/parser": "^8.35.1",
+    "eslint": "^9.32.0",
+    "tsx": "^4.22.0",
+    "typescript": "^5.8.3",
+    "vitest": "^4.1.10"
+  }
+}
