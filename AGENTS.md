@@ -14,3 +14,4 @@
 - Keep all demonstration interactions in the shared React context or feature state without browser persistence or connected services, so the frontend preview cannot imply real operations.
 - Define semantic visual tokens and reusable layouts in src/styles.css, so feature components follow one coherent design system.
 - Keep sample student content in src/data/demo.ts and label simulated service results, so demonstration data is distinct from real data.
+- Signed-in role lives in the shared demo context only (no storage), so role access stays a frontend simulation.
