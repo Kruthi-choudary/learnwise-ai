@@ -1,4 +1,4 @@
-# LearnWise AI — ElevateOS
+# LearnWise AI 
 
 > Your Goals. Your Growth. Your Next Move.  
 > A student workspace for learning, focus, and career growth.
