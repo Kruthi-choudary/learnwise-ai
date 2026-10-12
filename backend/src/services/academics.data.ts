@@ -126,3 +126,35 @@ export function pickQuestions(subject: string, topic: string, difficulty: string
   pool = [...exact, ...pool.filter((x) => !exact.includes(x))];
   return pool.slice(0, count);
 }
+
+// Weakest topic overall (or within a subject) — used to personalize
+// recommendations and practice questions when the caller doesn't pick one.
+export function weakestTopic(recs: PerfRecord[], subject?: string): TopicStat | undefined {
+  return topicStats(recs).filter((t) => !subject || t.subject === subject)[0];
+}
+
+// Content-based recommendation: for every topic that isn't "Strong" yet,
+// pull a couple of matching resources, preferring an easier difficulty for
+// "Weak" topics and a medium one for "Revise" topics.
+export function recommendResources(
+  recs: PerfRecord[],
+  subject?: string,
+  limit = 8,
+): Array<Resource & { reason: string; topicStatus: TopicStat["status"] }> {
+  const gaps = topicStats(recs).filter((t) => t.status !== "Strong" && (!subject || t.subject === subject));
+  const perTopicCap = 2;
+  const picks: Array<Resource & { reason: string; topicStatus: TopicStat["status"] }> = [];
+
+  for (const gap of gaps) {
+    if (picks.length >= limit) break;
+    const preferredDifficulty = gap.status === "Weak" ? "Easy" : "Medium";
+    const pool = resources.filter((r) => r.subject === gap.subject && r.topic === gap.topic);
+    const exact = pool.filter((r) => r.difficulty === preferredDifficulty);
+    const ordered = [...exact, ...pool.filter((r) => !exact.includes(r))];
+    for (const r of ordered.slice(0, perTopicCap)) {
+      if (picks.length >= limit) break;
+      picks.push({ ...r, reason: `${gap.status} in ${gap.topic} — currently ${gap.pct}%`, topicStatus: gap.status });
+    }
+  }
+  return picks;
+}
