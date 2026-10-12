@@ -15,4 +15,4 @@
 - Define semantic visual tokens and reusable layouts in src/styles.css, so feature components follow one coherent design system.
 - Keep sample student content in src/data/demo.ts and label simulated service results, so demonstration data is distinct from real data.
 - Signed-in role lives in the shared demo context only (no storage), so role access stays a frontend simulation.
-- Academic performance records live in AcademicsProvider (shared demo state) and all gap/progress figures are derived from them, so practice results update recommendations everywhere.
+- Academic performance records are a deliberate exception to the "no connected services" rule above: AcademicsProvider fetches/persists them through the Express backend (src/api.ts), scoped to an anonymous per-browser id (src/lib/student-id.ts, no login) so visitors don't share one dataset. Gap/progress figures (stats, recommendations, practice questions) are computed server-side, not recomputed in the frontend — AcademicsProvider just reflects what the backend returns.
