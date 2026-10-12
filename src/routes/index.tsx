@@ -1,24 +1,13 @@
 import { createFileRoute } from "@tanstack/react-router";
-
-// No head() here: the home route inherits title/description/og/twitter from
-// __root.tsx, and ships no og:image so serve-time hosting can inject the
-// project's social preview (explicit og:image or latest screenshot).
+import { Overview } from "@/components/elevate/overview";
 export const Route = createFileRoute("/")({
-  component: Index,
+  head: () => ({ meta: [
+    { title: "Your Overview — ElevateOS" },
+    { name: "description", content: "Your daily action plan, learning progress, goals, and opportunities in one personal student growth workspace." },
+    { property: "og:title", content: "Your Overview — ElevateOS" },
+    { property: "og:description", content: "A focused day. A bigger future. Explore your personal growth overview." },
+    { property: "og:type", content: "website" },
+    { name: "twitter:card", content: "summary_large_image" },
+  ] }),
+  component: Overview,
 });
-
-// IMPORTANT: Replace this placeholder. See ./README.md for routing conventions.
-function Index() {
-  return (
-    <div
-      className="flex min-h-screen items-center justify-center"
-      style={{ backgroundColor: "#fcfbf8" }}
-    >
-      <img
-        data-lovable-blank-page-placeholder="REMOVE_THIS"
-        src="https://cdn.gpteng.co/blank-app-v1.svg"
-        alt="Your app will live here!"
-      />
-    </div>
-  );
-}
