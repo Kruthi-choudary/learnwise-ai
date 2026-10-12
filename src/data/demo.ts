@@ -23,3 +23,13 @@ export const opportunities = [
 ];
 export const weekly = [{day:'Mon',learning:2.1,coding:1.3},{day:'Tue',learning:2.8,coding:1.8},{day:'Wed',learning:2.4,coding:1.5},{day:'Thu',learning:3.9,coding:2.5},{day:'Fri',learning:3.5,coding:2.2},{day:'Sat',learning:4.8,coding:3.2},{day:'Sun',learning:3.7,coding:2.6}];
 export function downloadText(name:string,text:string,type='text/plain'){const url=URL.createObjectURL(new Blob([text],{type}));const a=document.createElement('a');a.href=url;a.download=name;a.click();URL.revokeObjectURL(url);}
+
+// Sample students for the college admin demo view (not real people).
+export const campusStudents = [
+ {roll:'21B81A0501',name:'Alex Morgan',dept:'CSE',year:3,progress:72,attendance:91,status:'On track'},
+ {roll:'21B81A0512',name:'Priya Reddy',dept:'CSE',year:3,progress:88,attendance:96,status:'On track'},
+ {roll:'21B81A0433',name:'Rahul Varma',dept:'ECE',year:3,progress:41,attendance:68,status:'Needs support'},
+ {roll:'22B81A1207',name:'Sneha Iyer',dept:'IT',year:2,progress:64,attendance:84,status:'On track'},
+ {roll:'22B81A0548',name:'Karthik Rao',dept:'CSE',year:2,progress:35,attendance:72,status:'Needs support'},
+ {roll:'20B81A0219',name:'Ananya Das',dept:'EEE',year:4,progress:93,attendance:98,status:'Placement ready'},
+];
