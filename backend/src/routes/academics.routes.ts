@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { requireStudentId } from "../middleware/student.middleware.js";
+import { asyncHandler } from "../middleware/async-handler.js";
 import {
   listRecords,
   createRecord,
@@ -20,14 +21,16 @@ router.get("/subjects",  listSubjects);
 router.get("/resources", listResources);
 
 // Student-scoped routes — require an X-Student-Id header (see student.middleware.ts).
+// Wrapped in asyncHandler: these controllers now query Postgres, and Express 4
+// doesn't forward a rejected promise to error middleware on its own.
 router.use(requireStudentId);
-router.get("/records",         listRecords);
-router.post("/records",        createRecord);
-router.put("/records/:id",     editRecord);
-router.delete("/records/:id",  removeRecord);
-router.get("/stats/topics",    listTopicStats);
-router.get("/stats/subjects",  listSubjectStats);
-router.get("/questions",       listQuestions);
-router.get("/recommendations", listRecommendations);
+router.get("/records",         asyncHandler(listRecords));
+router.post("/records",        asyncHandler(createRecord));
+router.put("/records/:id",     asyncHandler(editRecord));
+router.delete("/records/:id",  asyncHandler(removeRecord));
+router.get("/stats/topics",    asyncHandler(listTopicStats));
+router.get("/stats/subjects",  asyncHandler(listSubjectStats));
+router.get("/questions",       asyncHandler(listQuestions));
+router.get("/recommendations", asyncHandler(listRecommendations));
 
 export default router;

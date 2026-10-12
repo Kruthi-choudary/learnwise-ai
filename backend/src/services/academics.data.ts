@@ -1,7 +1,7 @@
 // Seed data matching the frontend's src/data/academics.ts exactly.
 
 import type { PerfRecord, Resource, Question, TopicStat, SubjectStat } from "../models/academics.model.js";
-import { db } from "../db/sqlite.js";
+import { pool } from "../db/postgres.js";
 
 export const subjects = ["DSA", "Operating Systems", "DBMS", "Computer Networks"] as const;
 
@@ -14,7 +14,7 @@ export const topicsBySubject: Record<string, string[]> = {
 
 // Demo seed, copied into a student's record set the first time they're ever
 // seen (see ensureSeeded) so a fresh anonymous visitor isn't staring at an
-// empty dashboard. After that, their records live entirely in SQLite.
+// empty dashboard. After that, their records live entirely in Postgres.
 const seedRecords: Omit<PerfRecord, "id">[] = [
   { subject: "DSA",               topic: "Arrays",              score: 17, max: 20, date: "2026-09-02", type: "Quiz",       mistakes: "Off-by-one in loops" },
   { subject: "DSA",               topic: "Linked Lists",        score: 9,  max: 20, date: "2026-09-05", type: "Quiz",       mistakes: "Pointer updates when deleting nodes" },
@@ -30,44 +30,52 @@ const seedRecords: Omit<PerfRecord, "id">[] = [
   { subject: "Computer Networks", topic: "TCP/IP",              score: 15, max: 20, date: "2026-10-06", type: "Quiz",       mistakes: "" },
 ];
 
-const countStmt = db.prepare("SELECT COUNT(*) as n FROM records WHERE studentId = ?");
-const insertStmt = db.prepare(
-  "INSERT INTO records (studentId, subject, topic, score, max, date, type, mistakes) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-);
-const selectStmt = db.prepare("SELECT * FROM records WHERE studentId = ? ORDER BY id ASC");
-const deleteStmt = db.prepare("DELETE FROM records WHERE studentId = ? AND id = ?");
-const updateStmt = db.prepare(
-  "UPDATE records SET subject = ?, topic = ?, score = ?, max = ?, date = ?, type = ?, mistakes = ? WHERE studentId = ? AND id = ?",
-);
-
-function ensureSeeded(studentId: string) {
-  const row = countStmt.get(studentId) as { n: number };
-  if (row.n > 0) return;
+async function ensureSeeded(studentId: string): Promise<void> {
+  const { rows } = await pool.query<{ n: number }>(
+    "SELECT COUNT(*)::int AS n FROM records WHERE student_id = $1",
+    [studentId],
+  );
+  if (rows[0]!.n > 0) return;
   for (const r of seedRecords) {
-    insertStmt.run(studentId, r.subject, r.topic, r.score, r.max, r.date, r.type, r.mistakes);
+    await pool.query(
+      "INSERT INTO records (student_id, subject, topic, score, max, date, type, mistakes) VALUES ($1,$2,$3,$4,$5,$6,$7,$8)",
+      [studentId, r.subject, r.topic, r.score, r.max, r.date, r.type, r.mistakes],
+    );
   }
 }
 
-export function getRecords(studentId: string): PerfRecord[] {
-  ensureSeeded(studentId);
-  return selectStmt.all(studentId) as unknown as PerfRecord[];
+export async function getRecords(studentId: string): Promise<PerfRecord[]> {
+  await ensureSeeded(studentId);
+  const { rows } = await pool.query(
+    "SELECT id, subject, topic, score, max, date, type, mistakes FROM records WHERE student_id = $1 ORDER BY id ASC",
+    [studentId],
+  );
+  return rows as PerfRecord[];
 }
 
-export function addRecord(studentId: string, data: Omit<PerfRecord, "id">): PerfRecord {
-  ensureSeeded(studentId);
-  const info = insertStmt.run(studentId, data.subject, data.topic, data.score, data.max, data.date, data.type, data.mistakes);
-  return { id: Number(info.lastInsertRowid), ...data };
+export async function addRecord(studentId: string, data: Omit<PerfRecord, "id">): Promise<PerfRecord> {
+  await ensureSeeded(studentId);
+  const { rows } = await pool.query<{ id: number }>(
+    `INSERT INTO records (student_id, subject, topic, score, max, date, type, mistakes)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING id`,
+    [studentId, data.subject, data.topic, data.score, data.max, data.date, data.type, data.mistakes],
+  );
+  return { id: rows[0]!.id, ...data };
 }
 
-export function updateRecord(studentId: string, id: number, data: Omit<PerfRecord, "id">): PerfRecord | null {
-  const info = updateStmt.run(data.subject, data.topic, data.score, data.max, data.date, data.type, data.mistakes, studentId, id);
-  if (info.changes === 0) return null;
+export async function updateRecord(studentId: string, id: number, data: Omit<PerfRecord, "id">): Promise<PerfRecord | null> {
+  const result = await pool.query(
+    `UPDATE records SET subject=$1, topic=$2, score=$3, max=$4, date=$5, type=$6, mistakes=$7
+     WHERE student_id=$8 AND id=$9`,
+    [data.subject, data.topic, data.score, data.max, data.date, data.type, data.mistakes, studentId, id],
+  );
+  if (result.rowCount === 0) return null;
   return { id, ...data };
 }
 
-export function deleteRecord(studentId: string, id: number): boolean {
-  const info = deleteStmt.run(studentId, id);
-  return info.changes > 0;
+export async function deleteRecord(studentId: string, id: number): Promise<boolean> {
+  const result = await pool.query("DELETE FROM records WHERE student_id = $1 AND id = $2", [studentId, id]);
+  return (result.rowCount ?? 0) > 0;
 }
 
 export const resources: Resource[] = [

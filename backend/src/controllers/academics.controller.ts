@@ -17,8 +17,8 @@ import {
 } from "../services/academics.data.js";
 
 // ── GET /api/academics/records ────────────────────────────────────────────────
-export function listRecords(req: Request, res: Response) {
-  res.json({ data: getRecords(req.studentId!) });
+export async function listRecords(req: Request, res: Response) {
+  res.json({ data: await getRecords(req.studentId!) });
 }
 
 // ── POST /api/academics/records ───────────────────────────────────────────────
@@ -32,18 +32,18 @@ const createRecordSchema = z.object({
   mistakes: z.string().default(""),
 });
 
-export function createRecord(req: Request, res: Response) {
+export async function createRecord(req: Request, res: Response) {
   const result = createRecordSchema.safeParse(req.body);
   if (!result.success) {
     res.status(400).json({ error: "Validation failed", details: result.error.flatten() });
     return;
   }
-  const record = addRecord(req.studentId!, result.data);
+  const record = await addRecord(req.studentId!, result.data);
   res.status(201).json({ data: record });
 }
 
 // ── PUT /api/academics/records/:id ───────────────────────────────────────────
-export function editRecord(req: Request, res: Response) {
+export async function editRecord(req: Request, res: Response) {
   const id = Number(req.params["id"]);
   if (isNaN(id)) {
     res.status(400).json({ error: "Invalid id" });
@@ -54,7 +54,7 @@ export function editRecord(req: Request, res: Response) {
     res.status(400).json({ error: "Validation failed", details: result.error.flatten() });
     return;
   }
-  const record = updateRecord(req.studentId!, id, result.data);
+  const record = await updateRecord(req.studentId!, id, result.data);
   if (!record) {
     res.status(404).json({ error: "Record not found" });
     return;
@@ -63,13 +63,13 @@ export function editRecord(req: Request, res: Response) {
 }
 
 // ── DELETE /api/academics/records/:id ────────────────────────────────────────
-export function removeRecord(req: Request, res: Response) {
+export async function removeRecord(req: Request, res: Response) {
   const id = Number(req.params["id"]);
   if (isNaN(id)) {
     res.status(400).json({ error: "Invalid id" });
     return;
   }
-  const deleted = deleteRecord(req.studentId!, id);
+  const deleted = await deleteRecord(req.studentId!, id);
   if (!deleted) {
     res.status(404).json({ error: "Record not found" });
     return;
@@ -78,13 +78,13 @@ export function removeRecord(req: Request, res: Response) {
 }
 
 // ── GET /api/academics/stats/topics ──────────────────────────────────────────
-export function listTopicStats(req: Request, res: Response) {
-  res.json({ data: topicStats(getRecords(req.studentId!)) });
+export async function listTopicStats(req: Request, res: Response) {
+  res.json({ data: topicStats(await getRecords(req.studentId!)) });
 }
 
 // ── GET /api/academics/stats/subjects ────────────────────────────────────────
-export function listSubjectStats(req: Request, res: Response) {
-  res.json({ data: subjectStats(getRecords(req.studentId!)) });
+export async function listSubjectStats(req: Request, res: Response) {
+  res.json({ data: subjectStats(await getRecords(req.studentId!)) });
 }
 
 // ── GET /api/academics/resources ─────────────────────────────────────────────
@@ -100,7 +100,7 @@ export function listResources(req: Request, res: Response) {
 // Omit `subject` to get questions personalized to the weakest topic found
 // in the student's own records (easier difficulty for "Weak", medium for
 // "Revise"). Pass subject/topic/difficulty explicitly to override.
-export function listQuestions(req: Request, res: Response) {
+export async function listQuestions(req: Request, res: Response) {
   const { subject, topic, difficulty, count = "5" } = req.query as Record<string, string | undefined>;
 
   let targetSubject = subject;
@@ -109,7 +109,7 @@ export function listQuestions(req: Request, res: Response) {
   let personalized = false;
 
   if (!targetSubject) {
-    const gap = weakestTopic(getRecords(req.studentId!));
+    const gap = weakestTopic(await getRecords(req.studentId!));
     if (!gap) {
       res.status(400).json({ error: "subject query param is required (no performance data yet to personalize from)" });
       return;
@@ -129,9 +129,9 @@ export function listQuestions(req: Request, res: Response) {
 // Gap-driven resource recommendations: pulls materials for every topic that
 // isn't "Strong" yet, easiest-first for "Weak" topics. Optional ?subject=
 // narrows to one subject; ?limit= caps the result count (default 8).
-export function listRecommendations(req: Request, res: Response) {
+export async function listRecommendations(req: Request, res: Response) {
   const { subject, limit = "8" } = req.query as Record<string, string | undefined>;
-  const data = recommendResources(getRecords(req.studentId!), subject, Number(limit));
+  const data = recommendResources(await getRecords(req.studentId!), subject, Number(limit));
   res.json({ data });
 }
 
