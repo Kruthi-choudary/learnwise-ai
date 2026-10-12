@@ -5,3 +5,4 @@
 - [x] Build frontend account/onboarding/settings and working demo interactions.
 - [x] Verify navigation and primary interactions.- [x] Light pastel redesign.
 - [x] Demo role-based sign-in (student roll no / college admin) and admin student overview.
+- [x] Performance Lab: marks entry/CSV, learning gaps, materials, practice questions, progress, focus next.

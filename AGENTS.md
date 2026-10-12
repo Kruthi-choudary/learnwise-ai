@@ -15,3 +15,4 @@
 - Define semantic visual tokens and reusable layouts in src/styles.css, so feature components follow one coherent design system.
 - Keep sample student content in src/data/demo.ts and label simulated service results, so demonstration data is distinct from real data.
 - Signed-in role lives in the shared demo context only (no storage), so role access stays a frontend simulation.
+- Academic performance records live in AcademicsProvider (shared demo state) and all gap/progress figures are derived from them, so practice results update recommendations everywhere.
