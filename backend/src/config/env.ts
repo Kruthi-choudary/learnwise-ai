@@ -13,7 +13,9 @@ export const env = {
     return process.env["NODE_ENV"] ?? "development";
   },
   get corsOrigin() {
-    return process.env["CORS_ORIGIN"] ?? "http://localhost:3000";
+    // TanStack Start / Vite dev server binds to 8080 by default.
+    // Override via CORS_ORIGIN env var in production.
+    return process.env["CORS_ORIGIN"] ?? "http://localhost:8080";
   },
   get jwtSecret() {
     return process.env["JWT_SECRET"] ?? "dev_secret_change_in_production";
