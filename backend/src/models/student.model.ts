@@ -40,6 +40,7 @@ export interface Task {
 }
 
 export interface Goal {
+  id?: number; // present for a real user's own goals; absent on the static demo seed
   title: string;
   subtitle: string;
   progress: number;

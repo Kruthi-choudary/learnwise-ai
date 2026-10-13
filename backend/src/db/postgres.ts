@@ -53,5 +53,37 @@ export async function initDb(): Promise<void> {
       mistakes TEXT NOT NULL DEFAULT ''
     );
     CREATE INDEX IF NOT EXISTS idx_records_student ON records(student_id);
+
+    CREATE TABLE IF NOT EXISTS users (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL,
+      roll_no TEXT UNIQUE NOT NULL,
+      email TEXT,
+      password_hash TEXT NOT NULL,
+      role TEXT NOT NULL DEFAULT 'student',
+      created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+    );
+
+    CREATE TABLE IF NOT EXISTS user_tasks (
+      id SERIAL PRIMARY KEY,
+      user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      title TEXT NOT NULL,
+      goal TEXT NOT NULL,
+      duration INTEGER NOT NULL,
+      priority TEXT NOT NULL,
+      color TEXT NOT NULL DEFAULT '',
+      done BOOLEAN NOT NULL DEFAULT false
+    );
+    CREATE INDEX IF NOT EXISTS idx_user_tasks_user ON user_tasks(user_id);
+
+    CREATE TABLE IF NOT EXISTS user_goals (
+      id SERIAL PRIMARY KEY,
+      user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      title TEXT NOT NULL,
+      subtitle TEXT NOT NULL DEFAULT '',
+      progress INTEGER NOT NULL DEFAULT 0,
+      color TEXT NOT NULL DEFAULT ''
+    );
+    CREATE INDEX IF NOT EXISTS idx_user_goals_user ON user_goals(user_id);
   `);
 }

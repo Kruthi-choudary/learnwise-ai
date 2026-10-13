@@ -7,6 +7,7 @@
 // (see backend/src/models/academics.model.ts and backend/src/models/student.model.ts).
 
 import { getStudentId } from "@/lib/student-id";
+import { getToken } from "@/lib/auth-token";
 
 // ── Shared response types ────────────────────────────────────────────────────
 
@@ -186,6 +187,112 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 
 function studentHeaders(extra?: Record<string, string>): HeadersInit {
   return { "X-Student-Id": getStudentId(), ...extra };
+}
+
+function authHeaders(extra?: Record<string, string>): HeadersInit {
+  const token = getToken();
+  return { ...(token ? { Authorization: `Bearer ${token}` } : {}), ...extra };
+}
+
+// ── Auth (real accounts) ──────────────────────────────────────────────────────
+
+export type UserRole = "student" | "admin";
+
+export interface AuthUser {
+  id: string;
+  name: string;
+  rollNo: string;
+  email: string | null;
+  role: UserRole;
+  createdAt: string;
+}
+
+export interface AuthResponse {
+  data: { user: AuthUser; token: string };
+}
+
+/** POST /api/auth/signup */
+export function signup(data: { name: string; rollNo: string; password: string; email?: string }): Promise<AuthResponse> {
+  return request<AuthResponse>("/api/auth/signup", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+}
+
+/** POST /api/auth/login */
+export function login(data: { rollNo: string; password: string }): Promise<AuthResponse> {
+  return request<AuthResponse>("/api/auth/login", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+}
+
+/** GET /api/auth/me */
+export function getMe(): Promise<{ data: AuthUser }> {
+  return request<{ data: AuthUser }>("/api/auth/me", { headers: authHeaders() });
+}
+
+// ── A real user's own tasks and goals (/api/me/*) ────────────────────────────
+// Scoped to the signed-in account via the bearer token — unlike Demo mode,
+// which keeps its tasks/goals purely in client state (see app-shell.tsx).
+
+export interface MyTask {
+  id: number;
+  title: string;
+  goal: string;
+  duration: number;
+  priority: string;
+  color: string;
+  done: boolean;
+}
+
+export interface MyGoal {
+  id: number;
+  title: string;
+  subtitle: string;
+  progress: number;
+  color: string;
+}
+
+export function getMyTasks(): Promise<{ data: MyTask[] }> {
+  return request<{ data: MyTask[] }>("/api/me/tasks", { headers: authHeaders() });
+}
+
+export function createMyTask(data: Omit<MyTask, "id" | "done">): Promise<{ data: MyTask }> {
+  return request<{ data: MyTask }>("/api/me/tasks", {
+    method: "POST",
+    headers: authHeaders({ "Content-Type": "application/json" }),
+    body: JSON.stringify(data),
+  });
+}
+
+export function toggleMyTask(id: number): Promise<{ data: MyTask }> {
+  return request<{ data: MyTask }>(`/api/me/tasks/${id}`, {
+    method: "PATCH",
+    headers: authHeaders(),
+  });
+}
+
+export function deleteMyTask(id: number): Promise<void> {
+  return request<void>(`/api/me/tasks/${id}`, { method: "DELETE", headers: authHeaders() });
+}
+
+export function getMyGoals(): Promise<{ data: MyGoal[] }> {
+  return request<{ data: MyGoal[] }>("/api/me/goals", { headers: authHeaders() });
+}
+
+export function createMyGoal(data: Omit<MyGoal, "id">): Promise<{ data: MyGoal }> {
+  return request<{ data: MyGoal }>("/api/me/goals", {
+    method: "POST",
+    headers: authHeaders({ "Content-Type": "application/json" }),
+    body: JSON.stringify(data),
+  });
+}
+
+export function deleteMyGoal(id: number): Promise<void> {
+  return request<void>(`/api/me/goals/${id}`, { method: "DELETE", headers: authHeaders() });
 }
 
 // ── Public API functions ─────────────────────────────────────────────────────

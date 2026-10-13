@@ -5,6 +5,8 @@ import { requestLogger } from "./middleware/logger.middleware.js";
 import { errorHandler, notFoundHandler } from "./middleware/error.middleware.js";
 import academicsRouter from "./routes/academics.routes.js";
 import studentRouter from "./routes/student.routes.js";
+import authRouter from "./routes/auth.routes.js";
+import userContentRouter from "./routes/user-content.routes.js";
 
 export function createApp() {
   const app = express();
@@ -23,6 +25,8 @@ export function createApp() {
   // ── API routes ────────────────────────────────────────────────────────────
   app.use("/api/academics", academicsRouter);
   app.use("/api",           studentRouter);
+  app.use("/api/auth",      authRouter);
+  app.use("/api/me",        userContentRouter);
 
   // ── Error handling (must come last) ──────────────────────────────────────
   app.use(notFoundHandler);
